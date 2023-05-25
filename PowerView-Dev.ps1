@@ -1,50 +1,7 @@
 #requires -version 2
 
-<#
-
-PowerSploit File: PowerView.ps1
-Author: Will Schroeder (@harmj0y)
-License: BSD 3-Clause
-Required Dependencies: None
-
-#>
-
-
-########################################################
-#
-# PSReflect code for Windows API access
-# Author: @mattifestation
-#   https://raw.githubusercontent.com/mattifestation/PSReflect/master/PSReflect.psm1
-#
-########################################################
 
 function New-InMemoryModule {
-<#
-.SYNOPSIS
-
-Creates an in-memory assembly and module
-
-Author: Matthew Graeber (@mattifestation)
-License: BSD 3-Clause
-Required Dependencies: None
-Optional Dependencies: None
-
-.DESCRIPTION
-
-When defining custom enums, structs, and unmanaged functions, it is
-necessary to associate to an assembly module. This helper function
-creates an in-memory module that can be passed to the 'enum',
-'struct', and Add-Win32Type functions.
-
-.PARAMETER ModuleName
-
-Specifies the desired name for the in-memory assembly and module. If
-ModuleName is not provided, it will default to a GUID.
-
-.EXAMPLE
-
-$Module = New-InMemoryModule -ModuleName Win32
-#>
 
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
     [CmdletBinding()]
@@ -72,9 +29,6 @@ $Module = New-InMemoryModule -ModuleName Win32
     return $ModuleBuilder
 }
 
-
-# A helper function used to reduce typing while defining function
-# prototypes for Add-Win32Type.
 function func {
     Param (
         [Parameter(Position = 0, Mandatory = $True)]
@@ -126,98 +80,6 @@ function func {
 
 function Add-Win32Type
 {
-<#
-.SYNOPSIS
-
-Creates a .NET type for an unmanaged Win32 function.
-
-Author: Matthew Graeber (@mattifestation)
-License: BSD 3-Clause
-Required Dependencies: None
-Optional Dependencies: func
-
-.DESCRIPTION
-
-Add-Win32Type enables you to easily interact with unmanaged (i.e.
-Win32 unmanaged) functions in PowerShell. After providing
-Add-Win32Type with a function signature, a .NET type is created
-using reflection (i.e. csc.exe is never called like with Add-Type).
-
-The 'func' helper function can be used to reduce typing when defining
-multiple function definitions.
-
-.PARAMETER DllName
-
-The name of the DLL.
-
-.PARAMETER FunctionName
-
-The name of the target function.
-
-.PARAMETER EntryPoint
-
-The DLL export function name. This argument should be specified if the
-specified function name is different than the name of the exported
-function.
-
-.PARAMETER ReturnType
-
-The return type of the function.
-
-.PARAMETER ParameterTypes
-
-The function parameters.
-
-.PARAMETER NativeCallingConvention
-
-Specifies the native calling convention of the function. Defaults to
-stdcall.
-
-.PARAMETER Charset
-
-If you need to explicitly call an 'A' or 'W' Win32 function, you can
-specify the character set.
-
-.PARAMETER SetLastError
-
-Indicates whether the callee calls the SetLastError Win32 API
-function before returning from the attributed method.
-
-.PARAMETER Module
-
-The in-memory module that will host the functions. Use
-New-InMemoryModule to define an in-memory module.
-
-.PARAMETER Namespace
-
-An optional namespace to prepend to the type. Add-Win32Type defaults
-to a namespace consisting only of the name of the DLL.
-
-.EXAMPLE
-
-$Mod = New-InMemoryModule -ModuleName Win32
-
-$FunctionDefinitions = @(
-  (func kernel32 GetProcAddress ([IntPtr]) @([IntPtr], [String]) -Charset Ansi -SetLastError),
-  (func kernel32 GetModuleHandle ([Intptr]) @([String]) -SetLastError),
-  (func ntdll RtlGetCurrentPeb ([IntPtr]) @())
-)
-
-$Types = $FunctionDefinitions | Add-Win32Type -Module $Mod -Namespace 'Win32'
-$Kernel32 = $Types['kernel32']
-$Ntdll = $Types['ntdll']
-$Ntdll::RtlGetCurrentPeb()
-$ntdllbase = $Kernel32::GetModuleHandle('ntdll')
-$Kernel32::GetProcAddress($ntdllbase, 'RtlGetCurrentPeb')
-
-.NOTES
-
-Inspired by Lee Holmes' Invoke-WindowsApi http://poshcode.org/2189
-
-When defining multiple function prototypes, it is ideal to provide
-Add-Win32Type with an array of function signatures. That way, they
-are all incorporated into the same in-memory module.
-#>
 
     [OutputType([Hashtable])]
     Param(
@@ -361,71 +223,6 @@ are all incorporated into the same in-memory module.
 
 
 function psenum {
-<#
-.SYNOPSIS
-
-Creates an in-memory enumeration for use in your PowerShell session.
-
-Author: Matthew Graeber (@mattifestation)
-License: BSD 3-Clause
-Required Dependencies: None
-Optional Dependencies: None
-
-.DESCRIPTION
-
-The 'psenum' function facilitates the creation of enums entirely in
-memory using as close to a "C style" as PowerShell will allow.
-
-.PARAMETER Module
-
-The in-memory module that will host the enum. Use
-New-InMemoryModule to define an in-memory module.
-
-.PARAMETER FullName
-
-The fully-qualified name of the enum.
-
-.PARAMETER Type
-
-The type of each enum element.
-
-.PARAMETER EnumElements
-
-A hashtable of enum elements.
-
-.PARAMETER Bitfield
-
-Specifies that the enum should be treated as a bitfield.
-
-.EXAMPLE
-
-$Mod = New-InMemoryModule -ModuleName Win32
-
-$ImageSubsystem = psenum $Mod PE.IMAGE_SUBSYSTEM UInt16 @{
-    UNKNOWN =                  0
-    NATIVE =                   1 # Image doesn't require a subsystem.
-    WINDOWS_GUI =              2 # Image runs in the Windows GUI subsystem.
-    WINDOWS_CUI =              3 # Image runs in the Windows character subsystem.
-    OS2_CUI =                  5 # Image runs in the OS/2 character subsystem.
-    POSIX_CUI =                7 # Image runs in the Posix character subsystem.
-    NATIVE_WINDOWS =           8 # Image is a native Win9x driver.
-    WINDOWS_CE_GUI =           9 # Image runs in the Windows CE subsystem.
-    EFI_APPLICATION =          10
-    EFI_BOOT_SERVICE_DRIVER =  11
-    EFI_RUNTIME_DRIVER =       12
-    EFI_ROM =                  13
-    XBOX =                     14
-    WINDOWS_BOOT_APPLICATION = 16
-}
-
-.NOTES
-
-PowerShell purists may disagree with the naming of this function but
-again, this was developed in such a way so as to emulate a "C style"
-definition as closely as possible. Sorry, I'm not going to name it
-New-Enum. :P
-#>
-
     [OutputType([Type])]
     Param (
         [Parameter(Position = 0, Mandatory=$True)]
@@ -475,9 +272,6 @@ New-Enum. :P
     $EnumBuilder.CreateType()
 }
 
-
-# A helper function used to reduce typing while defining struct
-# fields.
 function field {
     Param (
         [Parameter(Position = 0, Mandatory=$True)]
@@ -507,99 +301,6 @@ function field {
 
 function struct
 {
-<#
-.SYNOPSIS
-
-Creates an in-memory struct for use in your PowerShell session.
-
-Author: Matthew Graeber (@mattifestation)
-License: BSD 3-Clause
-Required Dependencies: None
-Optional Dependencies: field
-
-.DESCRIPTION
-
-The 'struct' function facilitates the creation of structs entirely in
-memory using as close to a "C style" as PowerShell will allow. Struct
-fields are specified using a hashtable where each field of the struct
-is comprosed of the order in which it should be defined, its .NET
-type, and optionally, its offset and special marshaling attributes.
-
-One of the features of 'struct' is that after your struct is defined,
-it will come with a built-in GetSize method as well as an explicit
-converter so that you can easily cast an IntPtr to the struct without
-relying upon calling SizeOf and/or PtrToStructure in the Marshal
-class.
-
-.PARAMETER Module
-
-The in-memory module that will host the struct. Use
-New-InMemoryModule to define an in-memory module.
-
-.PARAMETER FullName
-
-The fully-qualified name of the struct.
-
-.PARAMETER StructFields
-
-A hashtable of fields. Use the 'field' helper function to ease
-defining each field.
-
-.PARAMETER PackingSize
-
-Specifies the memory alignment of fields.
-
-.PARAMETER ExplicitLayout
-
-Indicates that an explicit offset for each field will be specified.
-
-.EXAMPLE
-
-$Mod = New-InMemoryModule -ModuleName Win32
-
-$ImageDosSignature = psenum $Mod PE.IMAGE_DOS_SIGNATURE UInt16 @{
-    DOS_SIGNATURE =    0x5A4D
-    OS2_SIGNATURE =    0x454E
-    OS2_SIGNATURE_LE = 0x454C
-    VXD_SIGNATURE =    0x454C
-}
-
-$ImageDosHeader = struct $Mod PE.IMAGE_DOS_HEADER @{
-    e_magic =    field 0 $ImageDosSignature
-    e_cblp =     field 1 UInt16
-    e_cp =       field 2 UInt16
-    e_crlc =     field 3 UInt16
-    e_cparhdr =  field 4 UInt16
-    e_minalloc = field 5 UInt16
-    e_maxalloc = field 6 UInt16
-    e_ss =       field 7 UInt16
-    e_sp =       field 8 UInt16
-    e_csum =     field 9 UInt16
-    e_ip =       field 10 UInt16
-    e_cs =       field 11 UInt16
-    e_lfarlc =   field 12 UInt16
-    e_ovno =     field 13 UInt16
-    e_res =      field 14 UInt16[] -MarshalAs @('ByValArray', 4)
-    e_oemid =    field 15 UInt16
-    e_oeminfo =  field 16 UInt16
-    e_res2 =     field 17 UInt16[] -MarshalAs @('ByValArray', 10)
-    e_lfanew =   field 18 Int32
-}
-
-# Example of using an explicit layout in order to create a union.
-$TestUnion = struct $Mod TestUnion @{
-    field1 = field 0 UInt32 0
-    field2 = field 1 IntPtr 0
-} -ExplicitLayout
-
-.NOTES
-
-PowerShell purists may disagree with the naming of this function but
-again, this was developed in such a way so as to emulate a "C style"
-definition as closely as possible. Sorry, I'm not going to name it
-New-Struct. :P
-#>
-
     [OutputType([Type])]
     Param (
         [Parameter(Position = 1, Mandatory=$True)]
@@ -649,9 +350,6 @@ New-Struct. :P
 
     $Fields = New-Object Hashtable[]($StructFields.Count)
 
-    # Sort each field according to the orders specified
-    # Unfortunately, PSv2 doesn't have the luxury of the
-    # hashtable [Ordered] accelerator.
     foreach ($Field in $StructFields.Keys)
     {
         $Index = $StructFields[$Field]['Position']
@@ -689,14 +387,12 @@ New-Struct. :P
         if ($ExplicitLayout) { $NewField.SetOffset($Offset) }
     }
 
-    # Make the struct aware of its own size.
-    # No more having to call [Runtime.InteropServices.Marshal]::SizeOf!
     $SizeMethod = $StructBuilder.DefineMethod('GetSize',
         'Public, Static',
         [Int],
         [Type[]] @())
     $ILGenerator = $SizeMethod.GetILGenerator()
-    # Thanks for the help, Jason Shirk!
+    
     $ILGenerator.Emit([Reflection.Emit.OpCodes]::Ldtoken, $StructBuilder)
     $ILGenerator.Emit([Reflection.Emit.OpCodes]::Call,
         [Type].GetMethod('GetTypeFromHandle'))
@@ -724,148 +420,7 @@ New-Struct. :P
     $StructBuilder.CreateType()
 }
 
-
-########################################################
-#
-# Misc. helpers
-#
-########################################################
-
 Function New-DynamicParameter {
-<#
-.SYNOPSIS
-
-Helper function to simplify creating dynamic parameters.
-
-    Adapated from https://beatcracker.wordpress.com/2015/08/10/dynamic-parameters-validateset-and-enums/.
-    Originally released under the Microsoft Public License (Ms-PL).
-
-.DESCRIPTION
-
-Helper function to simplify creating dynamic parameters.
-
-Example use cases:
-    Include parameters only if your environment dictates it
-    Include parameters depending on the value of a user-specified parameter
-    Provide tab completion and intellisense for parameters, depending on the environment
-
-Please keep in mind that all dynamic parameters you create, will not have corresponding variables created.
-    Use New-DynamicParameter with 'CreateVariables' switch in your main code block,
-    ('Process' for advanced functions) to create those variables.
-    Alternatively, manually reference $PSBoundParameters for the dynamic parameter value.
-
-This function has two operating modes:
-
-1. All dynamic parameters created in one pass using pipeline input to the function. This mode allows to create dynamic parameters en masse,
-with one function call. There is no need to create and maintain custom RuntimeDefinedParameterDictionary.
-
-2. Dynamic parameters are created by separate function calls and added to the RuntimeDefinedParameterDictionary you created beforehand.
-Then you output this RuntimeDefinedParameterDictionary to the pipeline. This allows more fine-grained control of the dynamic parameters,
-with custom conditions and so on.
-
-.NOTES
-
-Credits to jrich523 and ramblingcookiemonster for their initial code and inspiration:
-    https://github.com/RamblingCookieMonster/PowerShell/blob/master/New-DynamicParam.ps1
-    http://ramblingcookiemonster.wordpress.com/2014/11/27/quick-hits-credentials-and-dynamic-parameters/
-    http://jrich523.wordpress.com/2013/05/30/powershell-simple-way-to-add-dynamic-parameters-to-advanced-function/
-
-Credit to BM for alias and type parameters and their handling
-
-.PARAMETER Name
-
-Name of the dynamic parameter
-
-.PARAMETER Type
-
-Type for the dynamic parameter.  Default is string
-
-.PARAMETER Alias
-
-If specified, one or more aliases to assign to the dynamic parameter
-
-.PARAMETER Mandatory
-
-If specified, set the Mandatory attribute for this dynamic parameter
-
-.PARAMETER Position
-
-If specified, set the Position attribute for this dynamic parameter
-
-.PARAMETER HelpMessage
-
-If specified, set the HelpMessage for this dynamic parameter
-
-.PARAMETER DontShow
-
-If specified, set the DontShow for this dynamic parameter.
-This is the new PowerShell 4.0 attribute that hides parameter from tab-completion.
-http://www.powershellmagazine.com/2013/07/29/pstip-hiding-parameters-from-tab-completion/
-
-.PARAMETER ValueFromPipeline
-
-If specified, set the ValueFromPipeline attribute for this dynamic parameter
-
-.PARAMETER ValueFromPipelineByPropertyName
-
-If specified, set the ValueFromPipelineByPropertyName attribute for this dynamic parameter
-
-.PARAMETER ValueFromRemainingArguments
-
-If specified, set the ValueFromRemainingArguments attribute for this dynamic parameter
-
-.PARAMETER ParameterSetName
-
-If specified, set the ParameterSet attribute for this dynamic parameter. By default parameter is added to all parameters sets.
-
-.PARAMETER AllowNull
-
-If specified, set the AllowNull attribute of this dynamic parameter
-
-.PARAMETER AllowEmptyString
-
-If specified, set the AllowEmptyString attribute of this dynamic parameter
-
-.PARAMETER AllowEmptyCollection
-
-If specified, set the AllowEmptyCollection attribute of this dynamic parameter
-
-.PARAMETER ValidateNotNull
-
-If specified, set the ValidateNotNull attribute of this dynamic parameter
-
-.PARAMETER ValidateNotNullOrEmpty
-
-If specified, set the ValidateNotNullOrEmpty attribute of this dynamic parameter
-
-.PARAMETER ValidateRange
-
-If specified, set the ValidateRange attribute of this dynamic parameter
-
-.PARAMETER ValidateLength
-
-If specified, set the ValidateLength attribute of this dynamic parameter
-
-.PARAMETER ValidatePattern
-
-If specified, set the ValidatePattern attribute of this dynamic parameter
-
-.PARAMETER ValidateScript
-
-If specified, set the ValidateScript attribute of this dynamic parameter
-
-.PARAMETER ValidateSet
-
-If specified, set the ValidateSet attribute of this dynamic parameter
-
-.PARAMETER Dictionary
-
-If specified, add resulting RuntimeDefinedParameter to an existing RuntimeDefinedParameterDictionary.
-Appropriate for custom dynamic parameters creation.
-
-If not specified, create and return a RuntimeDefinedParameterDictionary
-Appropriate for a simple dynamic parameter creation.
-#>
 
     [CmdletBinding(DefaultParameterSetName = 'DynamicParameter')]
     Param (
